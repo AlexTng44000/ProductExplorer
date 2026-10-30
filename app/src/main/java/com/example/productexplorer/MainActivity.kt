@@ -105,7 +105,11 @@ fun ProductDetailScreen(
                 .padding(top = 16.dp)
         )
 
-        Text(text = product.description)
+        ProductDescription(
+            description = product.description,
+            modifier = Modifier.padding(top = 16.dp)
+        )
+
 
         Button(onClick = onAddToCartClick) {
             Text(text = "Ajouter au panier")
@@ -156,6 +160,25 @@ fun ProductAvailabilityCard(
                 style = MaterialTheme.typography.bodyMedium
             )
         }
+    }
+}
+
+@Composable
+fun ProductDescription(
+    description: String,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Text(
+            text = "Description",
+            style = MaterialTheme.typography.titleMedium
+        )
+
+        Text(
+            text = description,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(top = 4.dp)
+        )
     }
 }
 
