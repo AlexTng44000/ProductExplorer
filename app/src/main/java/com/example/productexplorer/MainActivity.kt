@@ -28,7 +28,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Surface
-
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.Alignment
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,6 +82,7 @@ fun ProductHomeScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        DailyOfferBox()
 
     }
 }
@@ -229,6 +231,51 @@ fun CategoriesSection(
             CategoryChip(label = "Audio")
             Spacer(modifier = Modifier.weight(1f))
             CategoryChip(label = "Maison")
+        }
+    }
+}
+@Composable
+fun DailyOfferBox(
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            tonalElevation = 2.dp
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text(
+                    text = "Offre du jour",
+                    style = MaterialTheme.typography.titleMedium
+                )
+
+                Text(
+                    text = "Jusqu’à -20 % sur une sélection de produits",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+        }
+
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(8.dp),
+            shape = MaterialTheme.shapes.small,
+            tonalElevation = 6.dp
+        ) {
+            Text(
+                text = "Nouveau",
+                modifier = Modifier.padding(
+                    horizontal = 8.dp,
+                    vertical = 4.dp
+                ),
+                style = MaterialTheme.typography.labelMedium
+            )
         }
     }
 }
