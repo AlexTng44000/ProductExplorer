@@ -30,28 +30,37 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Surface
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.Alignment
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
         setContent {
             ProductExplorerTheme {
+                Scaffold(
+                    modifier = Modifier.fillMaxSize()
+                ) { innerPadding ->
 
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ProductHomeScreen(
-                        featuredProduct = sampleProduct(),
-                        onFeaturedProductClick = {
-                            // Plus tard : ouvrir le détail du produit
+                    ProductCatalogScreen(
+                        products = sampleProducts(),
+                        onProductClick = { product ->
+                            // Navigation vers le détail prévue plus tard
                         },
                         modifier = Modifier.padding(innerPadding)
                     )
 
                 }
-
             }
         }
     }
 }
+
 @Composable
 fun ProductHomeScreen(
     featuredProduct: ProductUi,
@@ -538,6 +547,7 @@ fun ProductImage(
 
 
 data class ProductUi(
+    val id: Int,
     val title: String,
     val brand: String,
     val category: String,
@@ -552,6 +562,7 @@ data class ProductUi(
 
 fun sampleProduct(): ProductUi {
     return ProductUi(
+        id =1,
         title = "Smartphone Toto X",
         brand = "TotoTech",
         category = "Smartphones",
@@ -565,8 +576,44 @@ fun sampleProduct(): ProductUi {
     )
 }
 
+fun sampleProducts(): List<ProductUi> {
+    return listOf(
+        sampleProduct(),
+        sampleProductOutOfStock(),
+
+        ProductUi(
+            id = 3,
+            title = "Montre Connectée FitTime",
+            brand = "FitTime",
+            category = "Wearables",
+            description = "Une montre connectée simple pour suivre l'activité quotidienne.",
+            price = 89.99,
+            discountPercentage = 15.0,
+            rating = 4.4,
+            stock = 18,
+            warrantyInformation = "Garantie constructeur : 2 ans",
+            shippingInformation = "Livraison estimée : 2 à 4 jours ouvrés"
+        ),
+
+        ProductUi(
+            id = 4,
+            title = "Enceinte Mini Boom",
+            brand = "BoomSound",
+            category = "Audio",
+            description = "Une enceinte compacte pour écouter de la musique.",
+            price = 59.99,
+            discountPercentage = 5.0,
+            rating = 4.1,
+            stock = 52,
+            warrantyInformation = "Garantie constructeur : 1 an",
+            shippingInformation = "Livraison estimée : 3 jours ouvrés"
+        )
+    )
+}
+
 fun sampleProductOutOfStock(): ProductUi {
     return ProductUi(
+        id=2,
         title = "Casque Audio Pulse",
         brand = "SoundPeak",
         category = "Audio",
@@ -579,5 +626,109 @@ fun sampleProductOutOfStock(): ProductUi {
         warrantyInformation = "Garantie constructeur : 1 an",
         shippingInformation = "Produit temporairement indisponible"
     )
+}
+
+fun sampleCategories(): List<String> {
+    return listOf("Smartphones", "Audio", "Wearables", "Maison")
+}
+
+@Composable
+fun CategoryRow(
+    categories: List<String>,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        items(categories) { category ->
+            CategoryChip(label = category)
+        }
+    }
+}
+
+@Composable
+fun ProductListItem(
+    product: ProductUi,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Card(modifier = modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = product.title,
+                style = MaterialTheme.typography.titleMedium
+            )
+
+            Text(
+                text = product.brand,
+                style = MaterialTheme.typography.bodyMedium
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = "${product.price} € • ★ ${product.rating}"
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(onClick = onClick) {
+                Text("Voir le produit")
+            }
+        }
+    }
+}
+
+@Composable
+fun ProductCatalogScreen(
+    products: List<ProductUi>,
+    onProductClick: (ProductUi) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Catalogue produits",
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
+
+        item {
+            Text(
+                text = "Explorez une sélection de produits disponibles localement.",
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        item {
+            CategoryRow(categories = sampleCategories())
+        }
+
+        items(
+            items = products,
+            key = { product -> product.id }
+        ) { product ->
+            ProductListItem(
+                product = product,
+                onClick = { onProductClick(product) }
+            )
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProductCatalogScreenPreview() {
+    ProductExplorerTheme {
+        ProductCatalogScreen(
+            products = sampleProducts(),
+            onProductClick = {}
+        )
+    }
 }
 
