@@ -656,9 +656,12 @@ fun CategoryRow(
     }
 }
 
+
 @Composable
 fun ProductListItem(
     product: ProductUi,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -702,6 +705,18 @@ fun ProductListItem(
             Button(onClick = onClick) {
                 Text(text = "Voir le produit")
             }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Button(onClick = onFavoriteClick) {
+                Text(
+                    text = if (isFavorite) {
+                        "Retirer des favoris"
+                    } else {
+                        "Ajouter aux favoris"
+                    }
+                )
+            }
         }
     }
 }
@@ -720,6 +735,18 @@ fun ProductCatalogScreen(
         mutableStateOf(false)
     }
 
+    var favoriteProductIds by rememberSaveable {
+        mutableStateOf(listOf<Int>())
+    }
+
+    fun toggleFavorite(productId: Int) {
+        favoriteProductIds =
+            if (favoriteProductIds.contains(productId)) {
+                favoriteProductIds - productId
+            } else {
+                favoriteProductIds + productId
+            }
+    }
 
     val filteredProducts = remember(
         products,
@@ -810,7 +837,13 @@ fun ProductCatalogScreen(
         ) { product ->
             ProductListItem(
                 product = product,
-                onClick = { onProductClick(product) }
+                isFavorite = favoriteProductIds.contains(product.id),
+                onFavoriteClick = {
+                    toggleFavorite(product.id)
+                },
+                onClick = {
+                    onProductClick(product)
+                }
             )
         }
     }
