@@ -796,6 +796,14 @@ fun ProductCatalogScreen(
             CategoryRow(categories = sampleCategories())
         }
 
+        item {
+            Text(
+                text = "${filteredProducts.size} produit(s) trouvé(s)",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
         items(
             items = filteredProducts,
             key = { product -> product.id }
