@@ -1,4 +1,4 @@
-# ProductExplorer — TP4 à TP8 (Jetpack Compose)
+# ProductExplorer — TP4 à TP9 (Jetpack Compose)
 
 Application Android de catalogue de produits, développée en **Kotlin** avec **Jetpack Compose** et **Material Design 3** dans le cadre des travaux pratiques de développement Android.
 
@@ -77,6 +77,23 @@ Ces données sont définies dans le code. **Aucune API, base de données ou auth
 7. Faire pivoter l'émulateur et vérifier la conservation des états.
 
 **Limites actuelles :** les boutons « Voir le produit » du catalogue et « Ajouter au panier » ne déclenchent pas encore de navigation ou de gestion du panier. Les favoris sont stockés dans l'état Compose, et non de manière permanente après fermeture complète de l'application.
+
+## TP9 — State Hoisting
+
+Refactoring du catalogue avec séparation des responsabilités :
+
+- ProductCatalogContainer (Stateful) : gère la recherche,
+  le filtre de stock et les favoris avec rememberSaveable.
+- ProductCatalogScreen (Stateless) : affiche les données
+  et transmet les événements grâce aux callbacks.
+- ProductListItem (Stateless) : affiche chaque produit et
+  transmet les clics.
+
+Le filtrage est calculé avec remember.
+
+Principe : les données descendent, les événements remontent.
+
+Les fonctionnalités du TP8 sont conservées.
 
 ## Structure principale
 
