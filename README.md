@@ -95,6 +95,35 @@ Principe : les données descendent, les événements remontent.
 
 Les fonctionnalités du TP8 sont conservées.
 
+## TP10 — Gestion du catalogue avec ViewModel
+
+Le catalogue utilise désormais un ViewModel pour gérer
+les données et les interactions utilisateur.
+
+### Fonctionnalités
+
+- Recherche dynamique des produits
+- Filtrage des produits en stock
+- Ajout et retrait des favoris
+- Conservation des états lors de la rotation
+- Affichage des résultats filtrés
+
+### Architecture
+
+- MainActivity : lance l'application
+- ProductCatalogContainer : relie le ViewModel à l'interface
+- ProductCatalogViewModel : gère les états et les actions
+- ProductCatalogScreen : affiche les données
+- ProductListItem : affiche chaque produit
+
+### Notions utilisées
+
+- ViewModel
+- mutableStateOf
+- State Hoisting
+- Composants Stateful et Stateless
+- Material Design 3
+
 ## Structure principale
 
 - `app/src/main/java/com/example/productexplorer/MainActivity.kt` : activité, données locales, écrans et composants Compose.
