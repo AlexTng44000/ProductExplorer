@@ -45,6 +45,9 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -340,10 +343,11 @@ fun ProductDetailScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            .verticalScroll(rememberScrollState())
             .padding(16.dp)
     ) {
 
-        ProductImage(
+    ProductImage(
             productTitle = product.title,
             modifier = Modifier
                 .fillMaxWidth()
@@ -726,7 +730,8 @@ data class ProductCatalogUiState(
     val categories: List<String> = emptyList(),
     val searchQuery: String = "",
     val showOnlyInStock: Boolean = false,
-    val favoriteProductIds: List<Int> = emptyList()
+    val favoriteProductIds: List<Int> = emptyList(),
+    val selectedProduct: ProductUi? = null
 )
 
 class ProductCatalogViewModel : ViewModel() {
@@ -805,6 +810,22 @@ class ProductCatalogViewModel : ViewModel() {
             )
         }
     }
+
+    fun onProductSelected(product: ProductUi) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedProduct = product
+            )
+        }
+    }
+
+    fun onBackToCatalog() {
+        _uiState.update { currentState ->
+            currentState.copy(
+                selectedProduct = null
+            )
+        }
+    }
 }
 
 @Composable
@@ -815,18 +836,51 @@ fun ProductCatalogContainer(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    ProductCatalogScreen(
-        products = uiState.products,
-        categories = uiState.categories,
-        searchQuery = uiState.searchQuery,
-        onSearchQueryChange = viewModel::onSearchQueryChange,
-        showOnlyInStock = uiState.showOnlyInStock,
-        onToggleStockFilter = viewModel::onToggleStockFilter,
-        favoriteProductIds = uiState.favoriteProductIds,
-        onFavoriteClick = viewModel::onFavoriteClick,
-        onProductClick = onProductClick,
-        modifier = modifier
-    )
+    BackHandler(enabled = uiState.selectedProduct != null) {
+        viewModel.onBackToCatalog()
+    }
+
+    val selectedProduct = uiState.selectedProduct
+
+    if (selectedProduct == null) {
+
+        ProductCatalogScreen(
+            products = uiState.products,
+            categories = uiState.categories,
+            searchQuery = uiState.searchQuery,
+            onSearchQueryChange = viewModel::onSearchQueryChange,
+            showOnlyInStock = uiState.showOnlyInStock,
+            onToggleStockFilter = viewModel::onToggleStockFilter,
+            favoriteProductIds = uiState.favoriteProductIds,
+            onFavoriteClick = viewModel::onFavoriteClick,
+            onProductClick = { product ->
+                viewModel.onProductSelected(product)
+                onProductClick(product)
+            },
+            modifier = modifier
+        )
+
+    } else {
+
+        Column(
+            modifier = modifier.fillMaxSize()
+        ) {
+            Button(
+                onClick = viewModel::onBackToCatalog,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Text("Retour au catalogue")
+            }
+
+            ProductDetailScreen(
+                product = selectedProduct,
+                onAddToCartClick = {
+                    // Prochaine étape : panier
+                },
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
 }
 
 @Composable
