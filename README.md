@@ -75,17 +75,53 @@ L'écran principal présente **quatre produits locaux**. Il permet de rechercher
 
 ```text
 MainActivity
-    └── ProductCatalogContainer
+    └── ProductCatalogContainer (Stateful)
+            │
             ├── ProductCatalogViewModel
             │       └── StateFlow<ProductCatalogUiState>
-            └── ProductCatalogScreen (Stateless)
-                    └── ProductListItem (Stateless)
+            │               ├── products
+            │               ├── categories
+            │               ├── searchQuery
+            │               ├── showOnlyInStock
+            │               ├── favoriteProductIds
+            │               └── selectedProduct
+            │
+            ├── ProductCatalogScreen (Stateless)
+            │       ├── CategoryRow
+            │       │       └── CategoryChip
+            │       └── ProductListItem (Stateless)
+            │
+            └── ProductDetailScreen
+                    ├── ProductImage
+                    ├── ProductHeader
+                    ├── ProductPriceCard
+                    ├── ProductRating
+                    ├── ProductAvailabilityCard
+                    ├── ProductDescription
+                    ├── ProductWarrantyField
+                    └── AddToCartButton
 ```
 
-- **`ProductCatalogViewModel`** : détient les données locales, centralise les actions et publie le nouvel état.
-- **`ProductCatalogUiState`** : représente les valeurs nécessaires à l'affichage.
-- **`ProductCatalogContainer`** : observe `uiState` et passe les valeurs et callbacks à l'écran.
-- **`ProductCatalogScreen`** : affiche la liste et les contrôles sans posséder l'état métier.
+### Rôle des composants
+
+- **`MainActivity`** : lance l'application et affiche le conteneur principal.
+- **`ProductCatalogViewModel`** : centralise les données, la recherche, le filtre stock, les favoris et le produit sélectionné.
+- **`ProductCatalogUiState`** : regroupe les informations de l'interface dans un état observable.
+- **`ProductCatalogContainer`** : observe le StateFlow avec `collectAsState()` et affiche le catalogue ou la fiche produit.
+- **`ProductCatalogScreen`** : affiche le catalogue et transmet les actions utilisateur grâce aux callbacks.
+- **`ProductListItem`** : affiche chaque produit avec ses boutons « Voir le produit » et « Ajouter aux favoris ».
+- **`ProductDetailScreen`** : présente les informations détaillées du produit sélectionné.
+
+### Gestion de la navigation
+
+La navigation entre le catalogue et la fiche produit repose sur `selectedProduct`, une propriété de `ProductCatalogUiState`.
+
+- `onProductSelected()` sélectionne un produit et ouvre sa fiche.
+- `onBackToCatalog()` réinitialise la sélection pour revenir au catalogue.
+- `BackHandler` permet également d'utiliser le bouton Retour Android.
+
+L'application utilise `ViewModel` et `StateFlow` pour gérer les états, sans Navigation Compose.
+
 
 ## Données d'exemple
 
@@ -111,7 +147,56 @@ Ces données sont définies localement dans le code. **Aucune API, base de donn�
 9. Vérifier les previews du catalogue en mode clair et sombre.
 10. Vérifier que la compilation se termine par `BUILD SUCCESSFUL`.
 
-**Limites actuelles :** les boutons « Voir le produit » du catalogue et « Ajouter au panier » ne déclenchent pas encore de navigation ou de gestion du panier. Les favoris sont gardés en mémoire par le ViewModel ; aucune persistance après la fin du processus Android n'est implémentée.
+### Fonctionnalité supplémentaire — Navigation vers la fiche produit
+
+Cette évolution permet de consulter les informations détaillées
+d'un produit depuis le catalogue.
+**Limites actuelles :** la navigation vers la fiche détaillée est
+fonctionnelle. En revanche, le bouton « Ajouter au panier »
+ne permet pas encore de gérer les achats.
+
+Les favoris sont conservés en mémoire par le ViewModel,
+mais ne sont pas sauvegardés après la fermeture complète
+du processus de l'application.
+
+#### Fonctionnalités ajoutées
+
+- Ouverture de la fiche en cliquant sur « Voir le produit ».
+- Affichage du nom, de la marque, du prix et de la remise.
+- Affichage de la note, du stock, de la description et de la garantie.
+- Retour au catalogue avec un bouton dédié ou le bouton Retour Android.
+- Conservation de la recherche, du filtre stock et des favoris.
+- Défilement vertical de la fiche produit.
+
+#### Fonctionnement technique
+
+La navigation repose sur le ViewModel et StateFlow.
+
+La propriété `selectedProduct` de `ProductCatalogUiState`
+contient le produit sélectionné.
+
+- `onProductSelected()` ouvre la fiche du produit.
+- `onBackToCatalog()` permet de revenir au catalogue.
+- `ProductCatalogContainer` affiche l'écran correspondant.
+- `BackHandler` gère le bouton Retour Android.
+
+Cette navigation simple ne nécessite pas Navigation Compose.
+
+#### Captures d'écran
+
+| Catalogue produits | Fiche détaillée |
+| --- | --- |
+| ![Catalogue](screenshots/catalogue-produits.png) | ![Fiche produit](screenshots/fiche-produit.png) |
+
+#### Tests réalisés
+
+- Ouverture d'une fiche depuis le catalogue.
+- Affichage des informations du produit sélectionné.
+- Retour au catalogue.
+- Conservation des filtres et des favoris au retour.
+
+**Prochaine fonctionnalité :** gestion du panier avec
+ajout de produits, quantités et calcul du montant total.
 
 ## Notions et technologies utilisées
 
