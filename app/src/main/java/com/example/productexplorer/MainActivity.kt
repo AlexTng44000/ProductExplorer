@@ -653,7 +653,7 @@ fun sampleProductOutOfStock(): ProductUi {
 }
 
 fun sampleCategories(): List<String> {
-    return listOf("Smartphones", "Audio", "Wearables", "Maison")
+    return listOf("Smartphones", "Audio", "Wearables", "Maison", "Accessoires")
 }
 
 @Composable
