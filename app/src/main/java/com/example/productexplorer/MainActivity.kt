@@ -48,6 +48,7 @@ import kotlinx.coroutines.flow.update
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -338,6 +339,7 @@ fun ProductDetailScreenOutOfStockPreview() {
 fun ProductDetailScreen(
     product: ProductUi,
     onAddToCartClick: () -> Unit,
+    canAddToCart: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -394,13 +396,14 @@ fun ProductDetailScreen(
                 .padding(top = 16.dp)
         )
 
+
         AddToCartButton(
             onClick = onAddToCartClick,
+            enabled = canAddToCart && product.stock > 0,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp)
         )
-
     }
 }
 
@@ -488,13 +491,21 @@ fun ProductWarrantyField(
 @Composable
 fun AddToCartButton(
     onClick: () -> Unit,
+    enabled: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
     ) {
-        Text(text = "Ajouter au panier")
+        Text(
+            text = if (enabled) {
+                "Ajouter au panier"
+            } else {
+                "Ajout indisponible"
+            }
+        )
     }
 }
 
@@ -725,13 +736,20 @@ fun ProductListItem(
     }
 }
 
+data class CartItem(
+    val product: ProductUi,
+    val quantity: Int = 1
+)
+
 data class ProductCatalogUiState(
     val products: List<ProductUi> = emptyList(),
     val categories: List<String> = emptyList(),
     val searchQuery: String = "",
     val showOnlyInStock: Boolean = false,
     val favoriteProductIds: List<Int> = emptyList(),
-    val selectedProduct: ProductUi? = null
+    val selectedProduct: ProductUi? = null,
+    val cartItems: List<CartItem> = emptyList(),
+    val isCartOpen: Boolean = false
 )
 
 class ProductCatalogViewModel : ViewModel() {
@@ -826,7 +844,89 @@ class ProductCatalogViewModel : ViewModel() {
             )
         }
     }
+
+    fun onAddToCart(product: ProductUi) {
+        _uiState.update { currentState ->
+            val existingItem = currentState.cartItems
+                .firstOrNull { it.product.id == product.id }
+
+            val currentQuantity = existingItem?.quantity ?: 0
+
+            if (product.stock <= 0 || currentQuantity >= product.stock) {
+                currentState
+            } else {
+                val newCartItems = if (existingItem == null) {
+                    currentState.cartItems + CartItem(product)
+                } else {
+                    currentState.cartItems.map { item ->
+                        if (item.product.id == product.id) {
+                            item.copy(quantity = item.quantity + 1)
+                        } else {
+                            item
+                        }
+                    }
+                }
+
+                currentState.copy(cartItems = newCartItems)
+            }
+        }
+    }
+
+    fun onIncreaseQuantity(productId: Int) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                cartItems = currentState.cartItems.map { item ->
+                    if (
+                        item.product.id == productId &&
+                        item.quantity < item.product.stock
+                    ) {
+                        item.copy(quantity = item.quantity + 1)
+                    } else {
+                        item
+                    }
+                }
+            )
+        }
+    }
+
+    fun onDecreaseQuantity(productId: Int) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                cartItems = currentState.cartItems.mapNotNull { item ->
+                    when {
+                        item.product.id != productId -> item
+                        item.quantity > 1 ->
+                            item.copy(quantity = item.quantity - 1)
+                        else -> null
+                    }
+                }
+            )
+        }
+    }
+
+    fun onRemoveFromCart(productId: Int) {
+        _uiState.update { currentState ->
+            currentState.copy(
+                cartItems = currentState.cartItems.filterNot {
+                    it.product.id == productId
+                }
+            )
+        }
+    }
+
+    fun onOpenCart() {
+        _uiState.update { currentState ->
+            currentState.copy(isCartOpen = true)
+        }
+    }
+
+    fun onCloseCart() {
+        _uiState.update { currentState ->
+            currentState.copy(isCartOpen = false)
+        }
+    }
 }
+
 
 @Composable
 fun ProductCatalogContainer(
@@ -836,49 +936,201 @@ fun ProductCatalogContainer(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    BackHandler(enabled = uiState.selectedProduct != null) {
-        viewModel.onBackToCatalog()
+    BackHandler(
+        enabled = uiState.isCartOpen || uiState.selectedProduct != null
+    ) {
+        if (uiState.isCartOpen) {
+            viewModel.onCloseCart()
+        } else {
+            viewModel.onBackToCatalog()
+        }
     }
 
+    val cartCount = uiState.cartItems.sumOf { it.quantity }
     val selectedProduct = uiState.selectedProduct
 
-    if (selectedProduct == null) {
+    when {
+        uiState.isCartOpen -> {
+            CartScreen(
+                cartItems = uiState.cartItems,
+                onIncreaseQuantity = viewModel::onIncreaseQuantity,
+                onDecreaseQuantity = viewModel::onDecreaseQuantity,
+                onRemoveItem = viewModel::onRemoveFromCart,
+                onBackClick = viewModel::onCloseCart,
+                modifier = modifier
+            )
+        }
 
-        ProductCatalogScreen(
-            products = uiState.products,
-            categories = uiState.categories,
-            searchQuery = uiState.searchQuery,
-            onSearchQueryChange = viewModel::onSearchQueryChange,
-            showOnlyInStock = uiState.showOnlyInStock,
-            onToggleStockFilter = viewModel::onToggleStockFilter,
-            favoriteProductIds = uiState.favoriteProductIds,
-            onFavoriteClick = viewModel::onFavoriteClick,
-            onProductClick = { product ->
-                viewModel.onProductSelected(product)
-                onProductClick(product)
-            },
-            modifier = modifier
-        )
+        selectedProduct != null -> {
+            val quantityInCart = uiState.cartItems
+                .firstOrNull { it.product.id == selectedProduct.id }
+                ?.quantity ?: 0
 
-    } else {
-
-        Column(
-            modifier = modifier.fillMaxSize()
-        ) {
-            Button(
-                onClick = viewModel::onBackToCatalog,
-                modifier = Modifier.padding(16.dp)
+            Column(
+                modifier = modifier.fillMaxSize()
             ) {
-                Text("Retour au catalogue")
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Button(
+                        onClick = viewModel::onBackToCatalog
+                    ) {
+                        Text("Retour")
+                    }
+
+                    Button(
+                        onClick = viewModel::onOpenCart
+                    ) {
+                        Text("Panier ($cartCount)")
+                    }
+                }
+
+                ProductDetailScreen(
+                    product = selectedProduct,
+                    onAddToCartClick = {
+                        viewModel.onAddToCart(selectedProduct)
+                    },
+                    canAddToCart = quantityInCart < selectedProduct.stock,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+        }
+
+        else -> {
+            ProductCatalogScreen(
+                products = uiState.products,
+                categories = uiState.categories,
+                searchQuery = uiState.searchQuery,
+                onSearchQueryChange = viewModel::onSearchQueryChange,
+                showOnlyInStock = uiState.showOnlyInStock,
+                onToggleStockFilter = viewModel::onToggleStockFilter,
+                favoriteProductIds = uiState.favoriteProductIds,
+                onFavoriteClick = viewModel::onFavoriteClick,
+                onProductClick = { product ->
+                    viewModel.onProductSelected(product)
+                    onProductClick(product)
+                },
+                cartItemCount = cartCount,
+                onCartClick = viewModel::onOpenCart,
+                modifier = modifier
+            )
+        }
+    }
+}
+
+@Composable
+fun CartScreen(
+    cartItems: List<CartItem>,
+    onIncreaseQuantity: (Int) -> Unit,
+    onDecreaseQuantity: (Int) -> Unit,
+    onRemoveItem: (Int) -> Unit,
+    onBackClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val total = cartItems.sumOf { item ->
+        item.product.price * item.quantity
+    }
+
+    LazyColumn(
+        modifier = modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background),
+        contentPadding = PaddingValues(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        item {
+            Text(
+                text = "Mon panier",
+                style = MaterialTheme.typography.headlineMedium
+            )
+        }
+
+        item {
+            Button(onClick = onBackClick) {
+                Text("Retour")
+            }
+        }
+
+        if (cartItems.isEmpty()) {
+            item {
+                Text("Votre panier est vide.")
+            }
+        } else {
+            items(
+                items = cartItems,
+                key = { it.product.id }
+            ) { item ->
+                Card(
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = item.product.title,
+                            style = MaterialTheme.typography.titleLarge
+                        )
+
+                        Text(
+                            text = String.format(
+                                Locale.FRANCE,
+                                "%.2f € × %d",
+                                item.product.price,
+                                item.quantity
+                            )
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Button(
+                                onClick = {
+                                    onDecreaseQuantity(item.product.id)
+                                }
+                            ) {
+                                Text("−")
+                            }
+
+                            Text("${item.quantity}")
+
+                            Button(
+                                onClick = {
+                                    onIncreaseQuantity(item.product.id)
+                                },
+                                enabled = item.quantity < item.product.stock
+                            ) {
+                                Text("+")
+                            }
+                        }
+
+                        Button(
+                            onClick = {
+                                onRemoveItem(item.product.id)
+                            }
+                        ) {
+                            Text("Retirer du panier")
+                        }
+                    }
+                }
             }
 
-            ProductDetailScreen(
-                product = selectedProduct,
-                onAddToCartClick = {
-                    // Prochaine étape : panier
-                },
-                modifier = Modifier.weight(1f)
-            )
+            item {
+                Text(
+                    text = String.format(
+                        Locale.FRANCE,
+                        "Total : %.2f €",
+                        total
+                    ),
+                    style = MaterialTheme.typography.headlineSmall
+                )
+                Text(
+                    text = "Total calculé avant application des remises.",
+                    style = MaterialTheme.typography.bodySmall
+                )
+            }
         }
     }
 }
@@ -894,6 +1146,8 @@ fun ProductCatalogScreen(
     favoriteProductIds: List<Int>,
     onFavoriteClick: (Int) -> Unit,
     onProductClick: (ProductUi) -> Unit,
+    cartItemCount: Int = 0,
+    onCartClick: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     LazyColumn(
@@ -909,6 +1163,12 @@ fun ProductCatalogScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 color = MaterialTheme.colorScheme.primary
             )
+        }
+
+        item {
+            Button(onClick = onCartClick) {
+                Text("Voir mon panier ($cartItemCount)")
+            }
         }
 
         item {
